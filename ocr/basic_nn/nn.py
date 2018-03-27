@@ -2,6 +2,7 @@
 Neural network
 """
 import copy
+import json
 import math
 import random
 
@@ -27,18 +28,24 @@ class NeuralNetwork():
 
         self.shuffle()
 
-    def shuffle(self):
+    def differential(self, value):
         """
-        Set random weights
+        Derivation of the sigmoid
         """
-        for i, _ in enumerate(self.graph):
-            for j, _ in enumerate(self.graph[i]):
-                for k, _ in enumerate(self.graph[i][j]):
-                    self.graph[i][j][k] = random.random() * 3
+        sigm = self.sigmoid(value)
+        return sigm * (1 - sigm)
 
-        for i, _ in enumerate(self.bias):
-            for j, _ in enumerate(self.bias[i]):
-                self.bias[i][j] = random.random() * 3
+    def dump(self, filename):
+        """
+        Store NN's coefficients to the file
+        """
+        json.dump(self.graph, open(filename, 'w'))
+
+    def load(self, filename):
+        """
+        Load NN's coefficients from the file
+        """
+        self.graph = json.load(open(filename))
 
     def run(self, inputs, need_values=False):
         """
@@ -63,19 +70,26 @@ class NeuralNetwork():
             return idx_max
         return idx_max, self.outputs[-1]
 
+    def shuffle(self):
+        """
+        Set random weights
+        """
+        for i, _ in enumerate(self.graph):
+            for j, _ in enumerate(self.graph[i]):
+                for k, _ in enumerate(self.graph[i][j]):
+                    self.graph[i][j][k] = random.random() * 3
+
+        for i, _ in enumerate(self.bias):
+            for j, _ in enumerate(self.bias[i]):
+                self.bias[i][j] = random.random() * 3
+
     @staticmethod
     def sigmoid(value):
         """
         Usual sigmoid
         """
+        value = sorted([-200, value, 200])[1]
         return 1 / (1 + math.exp(-value))
-
-    def differential(self, value):
-        """
-        Derivation of the sigmoid
-        """
-        sigm = self.sigmoid(value)
-        return sigm * (1 - sigm)
 
     def train(self, inputs, expected_result):
         """
@@ -94,6 +108,8 @@ class NeuralNetwork():
                     self.graph[i][j][k] += (self.outputs[i][j] *
                                             self.delta[i + 1][k] *
                                             self.learning_rate)
+                    self.graph[i][j][k] = (
+                        sorted([-200, self.graph[i][j][k], 200])[1])
                     self.delta[i][j] += (self.delta[i + 1][k] *
                                          self.graph[i][j][k])
                 self.delta[i][j] *= self.differential(self.outputs[i][j])
